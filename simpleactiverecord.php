@@ -197,7 +197,13 @@ class ARExpect {
 		$resultArray = array();
 
 		foreach ($rows as $existingkey => $row) {
-			list($key,$value) = preg_split("/:/", $row);
+
+			$split = preg_split("/:/", $row);
+			$key   = $split[0];
+
+			if (isset($split[1])) {
+				$value = $split[1];
+			}
 
 			if (isset($value)) {
 				$resultArray[$key] = $value;
