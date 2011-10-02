@@ -510,6 +510,9 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 	}
 
 	private function escapeFieldValue($field, $value) {
+		if (!isset($this->fields[$field]))
+			return null;
+
 		if ($this->fields[$field]['type'] == 'int') {
 			if ($value === null && $this->fields[$field]['null'] == true) {
 				return 'NULL';

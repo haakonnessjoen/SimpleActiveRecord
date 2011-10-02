@@ -6,7 +6,9 @@ class testAdapter extends SimpleDbAdapter {
 	var $sql = array();
 
 	public function lastSQL($index=0) {
-		return $this->sql[count($this->sql)-1-$index];
+		if (count($this->sql) > 0)
+			return $this->sql[count($this->sql)-1-$index];
+		return null;
 	}
 
 	// mimic mysql
