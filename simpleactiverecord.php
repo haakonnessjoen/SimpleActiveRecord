@@ -239,6 +239,18 @@ class ARExpect {
 
 }
 
+class SQLExpression {
+	private $expression;
+
+	function SQLExpression($expression) {
+		$this->expression = $expression;
+	}
+
+	function __toString() {
+		return $this->expression;
+	}
+}
+
 class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 	protected $isNew;
 	protected $db;
@@ -513,17 +525,21 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 		if (!isset($this->fields[$field]))
 			return null;
 
+		if (is_object($value)) {
+			return (string)$value;
+		}
+
+		if ($value === null && $this->fields[$field]['null'] == true) {
+			return 'NULL';
+		}
+
 		if ($this->fields[$field]['type'] == 'int') {
-			if ($value === null && $this->fields[$field]['null'] == true) {
-				return 'NULL';
-			} elseif ($value === null) {
+			if ($value === null) {
 				return 0;
 			}
 			return (float)$value;
 		} else {
-			if ($value === null && $this->fields[$field]['null'] == true) {
-				return 'NULL';
-			} elseif ($value === null) {
+			if ($value === null) {
 				return $this->escapeString('');
 			}
 			return $this->escapeString($value);

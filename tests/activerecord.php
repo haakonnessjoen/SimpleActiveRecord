@@ -106,6 +106,19 @@ class TestOfMinimalDBAdapter extends UnitTestCase {
 		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(), 'SELECT * FROM users WHERE name = \'\' LIMIT 1');
 	}
 
+	function testWhereEscapeFieldSQLExpression() {
+		$user = new TestUser();
+		$data = $user->findFirstBy('name', new SQLExpression('CONCAT(name)')); // test sql function testing
+		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(), 'SELECT * FROM users WHERE name = CONCAT(name) LIMIT 1');
+	}
+
+	function testEscapeFieldSQLExpression() {
+		$user = new TestUser();
+		$user->name = new SQLExpression('CONCAT("my name ", NOW())');
+		$user->save();
+		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(1), 'INSERT INTO users (name, meta1, meta2, id) VALUES(CONCAT("my name ", NOW()), \'\', \'\', NULL)');
+	}
+
 	function testUnserialization() {
 		$user = new TestUser(1);
 		$this->assertEqual($user->meta1['agent_login'], 1254826435);
