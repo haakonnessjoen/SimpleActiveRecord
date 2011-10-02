@@ -242,7 +242,7 @@ class ARExpect {
 class SQLExpression {
 	private $expression;
 
-	function SQLExpression($expression) {
+	function __construct($expression) {
 		$this->expression = $expression;
 	}
 
@@ -260,6 +260,7 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 	protected $primaryKey = 'id';
 	protected $tableName;
 	protected $serialize;
+	protected $fields;
 	public $belongsTo = array();
 	public $hasMany = array();
 
@@ -267,12 +268,10 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 		/*
 		* If this were a larger project this function should
 		* have automatically pluralized the table name correctly.
+		* Instead, we want you to use singular table names.
 		*/
 		if (empty($this->tableName)) {
 			$this->tableName = strtolower(get_class($this));
-
-			if (substr($this->tableName,-1) != 's')
-				$this->tableName .= 's';
 		}
 
 		$this->belongsTo = ARExpect::expectAssocArray($this->belongsTo);
@@ -376,6 +375,16 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 		return $this->tableName;
 	}
 
+	public function getPrimaryKey() {
+		return $this->primaryKey;
+	}
+
+	public function getId() {
+		if (isset($this->{$this->primaryKey}))
+			return $this->{$this->primaryKey};
+		return null;
+	}
+
 	private function getCache($name) {
 		if (isset(self::$_cache[get_class($this).'_'.$name]))
 			return self::$_cache[get_class($this).'_'.$name];
@@ -385,6 +394,46 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 
 	private function setCache($name, $value) {
 		self::$_cache[get_class($this).'_'.$name] = $value;
+	}
+
+	public function __set($setKey,$setValue) {
+		if (is_object($setValue) && is_subclass_of($setValue, 'SimpleActiveRecord')) {
+			if (isset($this->belongsTo[$setKey])) {
+				$value = $this->belongsTo[$setKey];
+				if (strpos($value, ':') !== false) {
+					list($key, $class) = split(':', $value);
+				} else {
+					$key = $setKey . '_id';
+					$class = $value;
+				}
+				$this->{$key} = $setValue->getId();
+			} elseif (isset($this->hasMany[$setKey])) {
+				$this->__set($setKey, Array($setValue));
+			}
+		} elseif (isset($this->hasMany[$setKey]) && is_array($setValue)) {
+			$value = $this->hasMany[$setKey];
+			if (strpos($value, ':') !== false) {
+				list($key, $className) = split(':', $value);
+			} else {
+				$key = $this->tableName . '_id';
+				$className = $value;
+			}
+			$class = new $className();
+			$removeList = $class->findBy($key, $this->getId());
+			foreach ((array)$removeList as $remove) {
+				$remove->{$key} = null;
+				$remove->save();
+			}
+
+			foreach ((array)$setValue as $add) {
+				if (is_object($add) && is_subclass_of($add, 'SimpleActiveRecord') && get_class($add) == $className) {
+					$add->{$key} = $this->getId();
+					$add->save();
+				}
+			}
+		} else {
+			$this->{$setKey} = $setValue;
+		}
 	}
 
 	public function __get($name) {
@@ -414,12 +463,7 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 			if (strpos($value, ':') !== false) {
 				list($key, $class) = split(':', $value);
 			} else {
-				$tableName = $this->tableName;
-
-				if (substr($tableName,-1) == 's')
-					$tableName = substr($tableName,0,strlen($tableName)-1);
-
-				$key = $tableName . '_id';
+				$key = $this->tableName . '_id';
 				$class = $value;
 			}
 
@@ -519,6 +563,12 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 		foreach ((array)$objects as $object) {
 			$object->destroy();
 		}
+	}
+
+	public function deleteBy($key, $value) {
+		$where = $this->generateWhereQuery(array( $key => $value ));
+		$sql = $this->generateDeleteQuery($where);
+		$this->runQuery($sql);
 	}
 
 	private function escapeFieldValue($field, $value) {
@@ -640,6 +690,7 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 	public function beforeDestroy() {
 		return true;
 	}
+
 }
 
 ?>

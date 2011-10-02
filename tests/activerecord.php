@@ -21,6 +21,7 @@ class testAdapter extends SimpleDbAdapter {
 			'name'  => array( 'type' => 'string', 'null' => false),
 			'meta1' => array( 'type' => 'string', 'null' => false),
 			'meta2' => array( 'type' => 'string', 'null' => false),
+			'system_id' => array ('type' => 'int', 'null' => true)
 		);
 	}
 
@@ -46,6 +47,23 @@ class TestUser extends SimpleActiveRecord {
 	protected $primaryKey = 'id';
 	protected $serialize = 'meta1,meta2';
 	public $hasMany = array('posts','contacts');
+	public $belongsTo = array('system' => 'TestSystem');
+}
+
+class TestSystem extends SimpleActiveRecord {
+	protected $tableName = 'system';
+	protected $primaryKey = 'id';
+	public $hasMany = array('users' => 'TestUser');
+
+	public function __construct() {
+		$args = func_get_args();
+		call_user_func('parent::__construct', $args);
+
+		$this->fields = array(
+			'id'    => array( 'type' => 'int', 'null' => true ),
+			'name'  => array( 'type' => 'string', 'null' => false)
+		);
+	}
 }
 
 class TestOfARExpect extends UnitTestCase {
@@ -116,7 +134,7 @@ class TestOfMinimalDBAdapter extends UnitTestCase {
 		$user = new TestUser();
 		$user->name = new SQLExpression('CONCAT("my name ", NOW())');
 		$user->save();
-		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(1), 'INSERT INTO users (name, meta1, meta2, id) VALUES(CONCAT("my name ", NOW()), \'\', \'\', NULL)');
+		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(1), 'INSERT INTO users (name, meta1, meta2, system_id, id) VALUES(CONCAT("my name ", NOW()), \'\', \'\', NULL, NULL)');
 	}
 
 	function testUnserialization() {
@@ -128,7 +146,7 @@ class TestOfMinimalDBAdapter extends UnitTestCase {
 		$user = new TestUser(1);
 		$user->meta2['active'] = 0;
 		$user->save();
-		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(), 'UPDATE users SET name = \'\', meta1 = \'a:2:{s:6:\"active\";i:1;s:11:\"agent_login\";i:1254826435;}\', meta2 = \'a:2:{s:6:\"active\";i:0;s:11:\"agent_login\";i:1254826436;}\' WHERE id = 1 LIMIT 1');
+		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(), 'UPDATE users SET name = \'\', meta1 = \'a:2:{s:6:\"active\";i:1;s:11:\"agent_login\";i:1254826435;}\', meta2 = \'a:2:{s:6:\"active\";i:0;s:11:\"agent_login\";i:1254826436;}\', system_id = NULL WHERE id = 1 LIMIT 1');
 		$user->meta2['active'] = 1;
 		$user->save();
 	}
@@ -157,7 +175,7 @@ class TestOfMinimalDBAdapter extends UnitTestCase {
 		$user = new TestUser();
 		$user->name = 'myname';
 		$user->save();
-		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(1), 'INSERT INTO users (name, meta1, meta2, id) VALUES(\'myname\', \'\', \'\', NULL)');
+		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(1), 'INSERT INTO users (name, meta1, meta2, system_id, id) VALUES(\'myname\', \'\', \'\', NULL, NULL)');
 	}
 
 	function testInsertId() {
@@ -176,6 +194,30 @@ class TestOfMinimalDBAdapter extends UnitTestCase {
 		$user = new TestUser();
 		$user->destroyBy('username','haakon');
 		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(), 'DELETE FROM users WHERE id = 1');
+	}
+
+	function testUpdateIdWithObjectBelongsTo() {
+		$system = new TestSystem();
+		$system->id = 10;
+		$system->name = 'test';
+
+		$user = new TestUser();
+		$user->name = 'testnavn';
+		$user->system = $system;
+		$user->save();
+		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(1), 'INSERT INTO users (name, meta1, meta2, system_id, id) VALUES(\'testnavn\', \'\', \'\', 10, NULL)');
+	}
+
+	function testUpdateIdWithObjectHasMany() {
+		$system = new TestSystem();
+		$system->id = 123;
+
+		$user = new TestUser(1);
+
+		// Assign array of user objects
+		$system->users = array($user);
+
+		$this->assertEqual(SimpleDbAdapterWrapper::$adapter->lastSQL(), 'UPDATE users SET name = \'\', meta1 = \'a:2:{s:6:\"active\";i:1;s:11:\"agent_login\";i:1254826435;}\', meta2 = \'a:2:{s:6:\"active\";i:1;s:11:\"agent_login\";i:1254826436;}\', system_id = 123 WHERE id = 1 LIMIT 1');
 	}
 }
 
