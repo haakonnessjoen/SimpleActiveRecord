@@ -3,18 +3,18 @@ require_once('simpletest/autorun.php');
 require_once('simpleactiverecord.php');
 
 class User extends SimpleActiveRecord {
-	public $has_many = array( 'blogposts' => 'Blogpost' );
-	public $belongs_to = array( 'customer' => 'Customer' );
+	public $hasMany = array( 'blogposts' => 'Blogpost' );
+	public $belongsTo = array( 'customer' => 'Customer' );
 	public $serialize = 'meta';
 }
 
 
 class Customer extends SimpleActiveRecord {
-	public $has_many = array( 'users' => 'User' );
+	public $hasMany = array( 'users' => 'User' );
 }
 
 class Blogpost extends SimpleActiveRecord {
-	public $belongs_to = array( 'user' => 'User' );
+	public $belongsTo = array( 'user' => 'User' );
 }
 
 

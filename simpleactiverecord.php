@@ -260,8 +260,8 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 	protected $primaryKey = 'id';
 	protected $tableName;
 	protected $serialize;
-	public $belongs_to = array();
-	public $has_many = array();
+	public $belongsTo = array();
+	public $hasMany = array();
 
 	public function __construct() {
 		/*
@@ -275,8 +275,8 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 				$this->tableName .= 's';
 		}
 
-		$this->belongs_to = ARExpect::expectAssocArray($this->belongs_to);
-		$this->has_many = ARExpect::expectAssocArray((array)$this->has_many);
+		$this->belongsTo = ARExpect::expectAssocArray($this->belongsTo);
+		$this->hasMany = ARExpect::expectAssocArray((array)$this->hasMany);
 
 		$this->serialize = ARExpect::expectArray($this->serialize);
 
@@ -393,8 +393,8 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 			return $this->getCache($name);
 		}
 
-		if (isset($this->belongs_to[$name])) {
-			$value = $this->belongs_to[$name];
+		if (isset($this->belongsTo[$name])) {
+			$value = $this->belongsTo[$name];
 			if (strpos($value, ':') !== false) {
 				list($key, $class) = split(':', $value);
 			} else {
@@ -409,8 +409,8 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 			}
 		}
 
-		if (isset($this->has_many[$name])) {
-			$value = $this->has_many[$name];
+		if (isset($this->hasMany[$name])) {
+			$value = $this->hasMany[$name];
 			if (strpos($value, ':') !== false) {
 				list($key, $class) = split(':', $value);
 			} else {
@@ -619,10 +619,10 @@ class SimpleActiveRecord extends SimpleDbAdapterWrapper {
 		foreach ($this->fields as $fieldName => $fieldInfo) {
 			$buffer .= "\t" . ucfirst($fieldName) . ': ' . $this->$fieldName . "\n";
 		}
-		foreach ($this->has_many as $fieldName => $class) {
+		foreach ($this->hasMany as $fieldName => $class) {
 			$buffer .= "\t" . ucfirst($fieldName) . ": (reference to $class objects)\n";
 		}
-		foreach ($this->belongs_to as $fieldName => $class) {
+		foreach ($this->belongsTo as $fieldName => $class) {
 			$buffer .= "\t" . ucfirst($fieldName) . ": (reference to a $class object)\n";
 		}
 		return $buffer;

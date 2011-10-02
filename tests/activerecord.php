@@ -45,7 +45,7 @@ class TestUser extends SimpleActiveRecord {
 	protected $tableName = 'users';
 	protected $primaryKey = 'id';
 	protected $serialize = 'meta1,meta2';
-	public $has_many = array('posts','contacts');
+	public $hasMany = array('posts','contacts');
 }
 
 class TestOfARExpect extends UnitTestCase {
@@ -150,7 +150,7 @@ class TestOfMinimalDBAdapter extends UnitTestCase {
 
 	function testExpectHasManyType() {
 		$user = new TestUser();
-		$this->assertTrue(is_array($user->has_many));
+		$this->assertTrue(is_array($user->hasMany));
 	}
 
 	function testInsert() {
